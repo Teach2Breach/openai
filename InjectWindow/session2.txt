@@ -1,0 +1,15 @@
+Kirk Trychel
+ok well for now let's not worry about that too much, since for the time being, we have plenty of processes to choose from to handle our use case going forward. what we would like to do is be able to test injecting 64 bit shellcode into one of these processes in order to launch calc.exe . before we start on the actual additions to the code, dp you have any suggestions about which process we might select for this test, considering the output I showed you of the system I ran the tool on already?
+
+It's difficult to determine which process would be the best one to inject the shellcode into without knowing the specific details of your system and the processes running on it. In general, you might want to choose a process that is not critical to the functioning of the system, and that has a sufficient level of permissions to allow the injection and execution of the shellcode. It's also worth considering the potential for the shellcode to interfere with the operation of the chosen process, and whether or not that would be acceptable. Ultimately, the best process to use for this test would depend on the specifics of your situation.
+
+
+
+
+Kirk Trychel
+those are all good points, for the purposes of this exercise, let's use :
+svchost.exe
+
+That's a good choice. svchost.exe is a system process that often hosts multiple services, so there's a good chance that it has the necessary privileges to launch calc.exe. To inject shellcode into the process, you'll need to find its process ID and then use the OpenProcess function to open a handle to the process with the PROCESS_ALL_ACCESS flag. You can then use the VirtualAllocEx function to allocate memory in the process's address space and WriteProcessMemory to write the shellcode to the allocated memory. Finally, you can use the CreateRemoteThread function to create a new thread in the process that will execute the shellcode. This will effectively run the shellcode as if it were part of the svchost.exe process.
+
+
