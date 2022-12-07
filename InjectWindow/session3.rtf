@@ -1,0 +1,542 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{\fonttbl{\f0\fnil\fcharset0 Calibri;}{\f1\fnil\fcharset161 Calibri;}{\f2\fnil\fcharset1 Segoe UI Symbol;}}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\f0\fs22\lang9 Kirk Trychel\par
+ok so now let's keep adding to this program. please change the program to not print all the process names for every handle, but to instead store them all, compare them all, and only print the unique names, once each.\par
+\par
+Sure, I can modify the program to store the process names in a data structure and only print the unique names. Here is an updated version of the program that does this:\par
+\par
+Copy code\par
+#include <stdio.h>\par
+#include <stdlib.h>\par
+#include <windows.h>\par
+\par
+// Define a vector type for storing strings\par
+typedef struct Vec\par
+\{\par
+    char **elements;\par
+    size_t size;\par
+    size_t capacity;\par
+\} Vec;\par
+\par
+// Constructor function for Vec objects\par
+Vec Vec_new()\par
+\{\par
+    Vec vec;\par
+    vec.elements = malloc(16 * sizeof(char *));\par
+    vec.size = 0;\par
+    vec.capacity = 16;\par
+    return vec;\par
+\}\par
+\par
+// Function to check if a string is in a vector\par
+int Vec_contains(Vec *vec, char *str)\par
+\{\par
+    // Check if the vector contains the given string\par
+    for (size_t i = 0; i < vec->size; i++)\par
+    \{\par
+        if (strcmp(vec->elements[i], str) == 0)\par
+        \{\par
+            // Return true if the string is found\par
+            return 1;\par
+        \}\par
+    \}\par
+\par
+    // Return false if the string is not found\par
+    return 0;\par
+\}\par
+\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+    // Get the vector of process names from the lparam parameter\par
+    Vec *process_names = (Vec *)lparam\par
+\par
+\par
+\par
+Kirk Trychel\par
+continue from lparam\par
+\par
+// Get the handle to the process that owns the window\par
+DWORD process_id;\par
+GetWindowThreadProcessId(hwnd, &process_id);\par
+HANDLE process_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, process_id);\par
+\par
+Copy code\par
+// Get the name of the process associated with the handle\par
+TCHAR process_name[MAX_PATH];\par
+DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+\par
+// Check if the process name was successfully retrieved\par
+if (length == 0) \{\par
+    // Print an error message if the process name could not be retrieved\par
+    printf("Error: Failed to get process name\\n");\par
+\} else \{\par
+    // Check if the vector of process names contains the current process name\par
+    if (!Vec_contains(process_names, process_name))\par
+    \{\par
+        // Add the process name to the vector if it is not already there\par
+        process_names->elements[process_names->size] = strdup(process_name);\par
+        process_names->size++;\par
+    \}\par
+\}\par
+\par
+// Return true to continue enumerating windows\par
+return 1;\par
+\}\par
+\par
+int main()\par
+\{\par
+// Declare a vector to store the names of the processes\par
+Vec process_names = Vec_new();\par
+\par
+Copy code\par
+// Enumerate all the top-level windows on the system\par
+EnumWindows(callback, (LPARAM)&process_names);\par
+\par
+// Print the unique process names collected\par
+printf("Unique process names:\\n");\par
+for (size_t i = 0; i < process_names.size; i++)\par
+\{\par
+    printf("%s\\n", process_names.elements[i]);\par
+\}\par
+\par
+// Free the memory allocated for the elements in the vector\par
+for (size_t i = 0; i < process_names.size; i++)\par
+\{\par
+    free(process_names.elements[i]);\par
+\}\par
+free(process_names.elements);\par
+\par
+return 0;\par
+\}\par
+\par
+Copy code\par
+\par
+In the updated code, we store the process names in a vector of strings instead of printing them directly. We also added a `Vec_contains\par
+\par
+\par
+\par
+Kirk Trychel\par
+my errors:\par
+.\\main.c: In function 'callback':\par
+.\\main.c:46:1: error: expected ',' or ';' before 'DWORD'\par
+   46 | DWORD process_id;\par
+      | ^~~~~\par
+.\\main.c:47:33: error: 'process_id' undeclared (first use in this function); did you mean 'process_names'?\par
+   47 | GetWindowThreadProcessId(hwnd, &process_id);\par
+      |                                 ^~~~~~~~~~\par
+      |                                 process_names\par
+.\\main.c:47:33: note: each undeclared identifier is reported only once for each function it appears in\par
+.\\main.c:51:16: warning: implicit declaration of function 'GetProcessImageFileName' [-Wimplicit-function-declaration]\par
+   51 | DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+\par
+It looks like there is a missing #include directive for the TCHAR type and the GetProcessImageFileName function at the top of the file. These should be added as follows:\par
+\par
+Copy code\par
+#include <stdio.h>\par
+#include <stdlib.h>\par
+#include <windows.h>\par
+#include <TCHAR.h>\par
+\par
+// Define a vector type for storing strings\par
+typedef struct Vec\par
+\{\par
+    ...\par
+Additionally, the process_id variable should be declared before it is used in the callback function. This can be done as follows:\par
+\par
+Copy code\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+    // Declare the process_id variable\par
+    DWORD process_id;\par
+\par
+    // Get the handle to the process that owns the window\par
+    GetWindowThreadProcessId(hwnd, &process_id);\par
+    HANDLE process_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, process_id);\par
+\par
+    ...\par
+These changes should fix the errors you are seeing. Let me know if you have any other questions.\par
+\par
+\par
+\par
+\par
+Kirk Trychel\par
+.\\main.c: In function 'callback':\par
+.\\main.c:52:16: warning: implicit declaration of function 'GetProcessImageFileName' [-Wimplicit-function-declaration]\par
+   52 | DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+      |                ^~~~~~~~~~~~~~~~~~~~~~~\par
+.\\main.c:60:23: error: 'process_names' undeclared (first use in this function); did you mean 'process_name'?\par
+   60 |     if (!Vec_contains(process_names, process_name))\par
+      |                       ^~~~~~~~~~~~~\par
+      |                       process_name\par
+.\\main.c:60:23: note: each undeclared identifier is reported only once for each function it appears in\par
+\par
+It looks like there is an additional issue with the code where the process_names variable is not being correctly passed to the Vec_contains function in the callback function.\par
+\par
+To fix this, you can modify the Vec_contains function to take a Vec object instead of a pointer to a Vec object, as follows:\par
+\par
+Copy code\par
+// Function to check if a string is in a vector\par
+int Vec_contains(Vec vec, char *str)\par
+\{\par
+    // Check if the vector contains the given string\par
+    for (size_t i = 0; i < vec.size; i++)\par
+    \{\par
+        if (strcmp(vec.elements[i], str) == 0)\par
+        \{\par
+            // Return true if the string is found\par
+            return 1;\par
+        \}\par
+    \}\par
+\par
+    // Return false if the string is not found\par
+    return 0;\par
+\}\par
+This change allows the Vec_contains function to be called with the process_names variable as an argument without having to dereference the pointer.\par
+\par
+Here is the updated code in full:\par
+\par
+Copy code\par
+#include <stdio.h>\par
+#include <stdlib.h>\par
+#include <windows.h>\par
+#include <TCHAR.h>\par
+\par
+// Define a vector type for storing strings\par
+typedef struct Vec\par
+\{\par
+    char **elements;\par
+    size_t size;\par
+    size_t capacity;\par
+\} Vec;\par
+\par
+// Constructor function for Vec objects\par
+Vec Vec_new()\par
+\{\par
+    Vec vec;\par
+    vec.elements = malloc(16 * sizeof(char *));\par
+    vec.size = 0;\par
+    vec.capacity = 16;\par
+    return vec;\par
+\par
+\par
+\par
+Kirk Trychel\par
+continue from return vec;\par
+\par
+// Function to check if a string is in a vector\par
+int Vec_contains(Vec vec, char *str)\par
+\{\par
+// Check if the vector contains the given string\par
+for (size_t i = 0; i < vec.size; i++)\par
+\{\par
+if (strcmp(vec.elements[i], str) == 0)\par
+\{\par
+// Return true if the string is found\par
+return 1;\par
+\}\par
+\}\par
+\par
+Copy code\par
+// Return false if the string is not found\par
+return 0;\par
+\}\par
+\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+// Declare the process_id variable\par
+DWORD process_id;\par
+\par
+Copy code\par
+// Get the vector of process names from the lparam parameter\par
+Vec *process_names = (Vec *)lparam;\par
+\par
+// Get the handle to the process that owns the window\par
+GetWindowThreadProcessId(hwnd, &process_id);\par
+HANDLE process_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, process_id);\par
+\par
+// Get the name of the process associated with the handle\par
+TCHAR process_name[MAX_PATH];\par
+DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+\par
+// Check if the process name was successfully retrieved\par
+if (length == 0) \{\par
+    // Print an error message if the process name could not be retrieved\par
+    printf("Error: Failed to get process name\\n");\par
+\} else \{\par
+    // Check if the vector of process names contains the current process name\par
+    if (!Vec_contains(*process_names, process_name))\par
+    \{\par
+        // Add the process name to the vector if it is\par
+\par
+\par
+\par
+Kirk Trychel\par
+continue from it is\par
+\par
+// Add the process name to the vector if it is not already present\par
+process_names->elements[process_names->size] = _strdup(process_name);\par
+process_names->size++;\par
+\}\par
+\}\par
+\par
+Copy code\par
+// Return true to continue enumerating windows\par
+return 1;\par
+\}\par
+\par
+int main()\par
+\{\par
+// Declare a vector to store the names of the processes\par
+Vec process_names = Vec_new();\par
+\par
+Copy code\par
+// Enumerate all the top-level windows on the system\par
+EnumWindows(callback, (LPARAM)&process_names);\par
+\par
+// Print the number of names collected\par
+printf("Process names successfully collected: %d\\n", process_names.size);\par
+\par
+// Print the unique process names\par
+printf("Unique process names:\\n");\par
+for (size_t i = 0; i < process_names.size; i++)\par
+\{\par
+    printf("- %s\\n", process_names.elements[i]);\par
+\}\par
+\par
+// Free the memory allocated for the elements in the vector\par
+for (size_t i = 0; i < process_names.size; i++)\par
+\{\par
+    free(process_names.elements[i]);\par
+\}\par
+free(process_names.elements);\par
+\par
+return 0;\par
+\}\par
+\par
+Copy code\par
+\par
+This code should now only print the unique process names collected from the `EnumWindows` function. Let me know if you have any other questions.\par
+\par
+\par
+\par
+Kirk Trychel\par
+.\\main.c: In function 'callback':\par
+.\\main.c:53:16: warning: implicit declaration of function 'GetProcessImageFileName' [-Wimplicit-function-declaration]\par
+   53 | DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+      |                ^~~~~~~~~~~~~~~~~~~~~~~\par
+.\\main.c:117:1: error: expected declaration or statement at end of input\par
+  117 | \}\par
+      | ^\par
+.\\main.c:117:1: error: expected declaration or statement at end of input\par
+\par
+Here is an updated version of the code that should fix the issues you are encountering:\par
+\par
+Copy code\par
+#include <stdio.h>\par
+#include <stdlib.h>\par
+#include <windows.h>\par
+#include <string.h>\par
+\par
+typedef struct Vec\par
+\{\par
+    HANDLE *elements;\par
+    size_t size;\par
+    size_t capacity;\par
+\} Vec;\par
+\par
+// Constructor function for Vec objects\par
+Vec Vec_new()\par
+\{\par
+    Vec vec;\par
+    vec.elements = malloc(16 * sizeof(HANDLE));\par
+    vec.size = 0;\par
+    vec.capacity = 16;\par
+    return vec;\par
+\}\par
+\par
+// Function to check if a string is in a vector\par
+int Vec_contains(Vec vec, char *str)\par
+\{\par
+    // Check if the vector contains the given string\par
+    for (size_t i = 0; i < vec.size; i++)\par
+    \{\par
+        if (strcmp(vec.elements[i], str) == 0)\par
+        \{\par
+            // Return true if the string is found\par
+            return 1;\par
+        \}\par
+    \}\par
+\par
+    // Return false if the string is not found\par
+    return 0;\par
+\}\par
+\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+    // Declare the process_id variable\par
+    DWORD process_id;\par
+\par
+    // Get the vector of process names from the lparam parameter\par
+    Vec *process_names = (Vec *)lparam;\par
+\par
+    // Get the handle to the process that owns the window\par
+    GetWindowThreadProcessId(hwnd, &process_id);\par
+    HANDLE process_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, process_id);\par
+\par
+    // Get the name of the process associated with the handle\par
+    TCHAR process_name[MAX_PATH];\par
+    DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+\par
+    // Check if the process name was successfully retrieved\par
+    if (length == 0) \{\par
+        // Print an error message if the process name could not be retrieved\par
+        printf("Error: Failed to get process name\\n");\par
+    \} else \{\par
+        // Check if the vector of process names contains the current process name\par
+        if (!Vec_contains(*process_names, process_name))\par
+        \{\par
+            // Add the process name to the vector if it is not already present\par
+            process_names->elements[process_names->size] = _strdup(process_name);\par
+            process_names->size++;\par
+        \}\par
+    \}\par
+\par
+    // Return true to continue enumerating windows\par
+    return 1;\par
+\}\par
+\par
+int main()\par
+\{\par
+    // Declare a vector to store the names of the processes\par
+    Vec process_names = Vec_new();\par
+\par
+    // Enumerate all the top-level windows on the system\par
+    EnumWindows(callback, (LPARAM)&process_names);\par
+\par
+    //\par
+\par
+\par
+\par
+Kirk Trychel\par
+continue from EnumWindows\par
+\par
+Copy code\par
+    // Print the number of names collected\par
+    printf("Process names successfully collected: %d\\n", process_names.size);\par
+\par
+    // Print the unique process names\par
+    printf("Unique process names:\\n");\par
+    for (size_t i = 0; i < process_names.size; i++)\par
+    \{\par
+        printf("- %s\\n", process_names.elements[i]);\par
+    \}\par
+\par
+    // Free the memory allocated for the elements in the vector\par
+    for (size_t i = 0; i < process_names.size; i++)\par
+    \{\par
+        free(process_names.elements[i]);\par
+    \}\par
+    free(process_names.elements);\par
+\par
+    return 0;\par
+\}\par
+This updated code should fix the issues you were encountering and correctly print the unique process names collected from the EnumWindows function. I hope this helps! Let me know if you have any other questions.\par
+\par
+\par
+\par
+\par
+Kirk Trychel\par
+.\\main.c: In function 'callback':\par
+.\\main.c:55:20: warning: implicit declaration of function 'GetProcessImageFileName' [-Wimplicit-function-declaration]\par
+   55 |     DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+      |                    ^~~~~~~~~~~~~~~~~~~~~~~\par
+c:/users/adversary/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/12.2.0/../../../../x86_64-w64-mingw32/bin/ld.exe: C:\\Users\\ADVERS~1\\AppData\\Local\\Temp\\ccAma670.o:main.c:(.text+0x181): undefined reference to `GetProcessImageFileName'\par
+collect2.exe: error: ld returned 1 exit status\par
+\par
+It looks like you are still encountering issues with the GetProcessImageFileName function. This function is not a part of the standard C library, but rather a part of the Windows API. To use it, you will need to include the appropriate header file and link your program with the kernel32 library.\par
+\par
+To fix this issue, you will need to add the following line at the top of your program:\par
+\par
+Copy code\par
+#include <Windows.h>\par
+And you will need to link your program with the kernel32 library when compiling it by passing the -lkernel32 flag to the compiler, like this:\par
+\par
+Copy code\par
+gcc main.c -o find -lkernel32\par
+With these changes in place, you should be able to successfully compile and run your program without encountering any errors. Let me know if you have any other questions.\par
+\par
+\par
+\par
+\par
+Kirk Trychel\par
+PS C:\\Users\\adversary\\Desktop\\openai\\hijack> C:\\Users\\adversary\\mingw64\\bin\\gcc.exe .\\main.c -o hijack -lkernel32\par
+.\\main.c: In function 'callback':\par
+.\\main.c:57:20: warning: implicit declaration of function 'GetProcessImageFileName' [-Wimplicit-function-declaration]\par
+   57 |     DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+      |                    ^~~~~~~~~~~~~~~~~~~~~~~\par
+c:/users/adversary/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/12.2.0/../../../../x86_64-w64-mingw32/bin/ld.exe: C:\\Users\\ADVERS~1\\AppData\\Local\\Temp\\ccWOc9zY.o:main.c:(.text+0x181): undefined reference to `GetProcessImageFileName'\par
+collect2.exe: error: ld returned 1 exit status\par
+\par
+It looks like there is still a problem with the GetProcessImageFileName function. This time, the issue is that you are using the DWORD type without including the Windows.h header file, which defines this type.\par
+\par
+To fix this issue, you will need to add the following line at the top of your program, before any other #include statements:\par
+\par
+Copy code\par
+#include <Windows.h>\par
+This will include the necessary definitions for the DWORD type, as well as the GetProcessImageFileName function. After making this change, you should be able to compile your program successfully by running the following command:\par
+\par
+Copy code\par
+gcc main.c -o hijack -lkernel32\par
+Let me know if you have any other questions.\par
+\par
+\par
+\par
+\par
+Kirk Trychel\par
+wow that works great. Thank you so much for your help. I am sorry that I was not much help for you in debugging that. I am quite tired. But that was great. The program works. Let me share with you the actual output of running it on a live system, so you can see your creation. (There are some errors, but we can dig into those later. Enjoy for now):\par
+PS C:\\Users\\adversary\\Desktop\\openai\\hijack> .\\hijack.exe\par
+Error: Failed to get process name\par
+Error: Failed to get process name\par
+Error: Failed to get process name\par
+Error: Failed to get process name\par
+Error: Failed to get process name\par
+Error: Failed to get process name\par
+Error: Failed to get process name\par
+Process names successfully collected: 26\par
+Unique process names:\par
+- 0\f1\lang1032\'f0\f0\lang1033\'aa\f2\u9786?\f0\par
+- \\Device\\HarddiskVolume7\\Windows\\explorer.exe\par
+- \\Device\\HarddiskVolume7\\Users\\adversary\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe\par
+- \\Device\\HarddiskVolume7\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\par
+- \\Device\\HarddiskVolume7\\Program Files\\CherryTree\\mingw64\\bin\\cherrytree.exe\par
+- \\Device\\HarddiskVolume7\\Program Files\\Windows NT\\Accessories\\wordpad.exe\par
+- \\Device\\HarddiskVolume7\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\par
+- \\Device\\HarddiskVolume7\\Windows\\System32\\taskhostw.exe\par
+- \\Device\\HarddiskVolume7\\Windows\\System32\\conhost.exe\par
+- \\Device\\HarddiskVolume7\\Program Files (x86)\\Steam\\steam.exe\par
+- \\Device\\HarddiskVolume7\\Program Files (x86)\\Steam\\bin\\cef\\cef.win7x64\\steamwebhelper.exe\par
+- \\Device\\HarddiskVolume7\\Program Files\\WindowsApps\\Microsoft.YourPhone_1.22092.214.0_x64__8wekyb3d8bbwe\\PhoneExperienceHost.exe\par
+- \\Device\\HarddiskVolume7\\Program Files\\NVIDIA Corporation\\NVIDIA GeForce Experience\\NVIDIA Share.exe\par
+- \\Device\\HarddiskVolume7\\Windows\\System32\\RuntimeBroker.exe\par
+- \\Device\\HarddiskVolume7\\Windows\\ImmersiveControlPanel\\SystemSettings.exe\par
+- \\Device\\HarddiskVolume7\\Program Files\\Flameshot\\bin\\flameshot.exe\par
+- \\Device\\HarddiskVolume7\\Windows\\System32\\SecurityHealthSystray.exe\par
+- \\Device\\HarddiskVolume7\\Program Files\\NVIDIA Corporation\\ShadowPlay\\nvsphelper64.exe\par
+- \\Device\\HarddiskVolume7\\Program Files\\NVIDIA Corporation\\NvContainer\\nvcontainer.exe\par
+- \\Device\\HarddiskVolume7\\Program Files (x86)\\NVIDIA Corporation\\NvNode\\NVIDIA Web Helper.exe\par
+- \\Device\\HarddiskVolume7\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe\par
+- \\Device\\HarddiskVolume7\\Windows\\System32\\DriverStore\\FileRepository\\cui_dch.inf_amd64_38cfab2b652e4701\\igfxEM.exe\par
+- \\Device\\HarddiskVolume7\\Windows\\System32\\svchost.exe\par
+- \\Device\\HarddiskVolume7\\Windows\\System32\\ctfmon.exe\par
+- \\Device\\HarddiskVolume7\\Windows\\System32\\ApplicationFrameHost.exe\par
+- \\Device\\HarddiskVolume7\\Program Files\\Common Files\\microsoft shared\\ink\\TabTip.exe\par
+PS C:\\Users\\adversary\\Desktop\\openai\\hijack> \par
+\par
+I'm glad the program is working for you! It's great to see it in action. As for the errors, I'm not sure what is causing them. It's possible that some of the handles returned by EnumWindows are not valid, which would cause the GetProcessImageFileName function to fail. It would be worth adding some additional error checking to the code to handle this case more gracefully.\lang9\par
+\par
+\par
+}
+ 

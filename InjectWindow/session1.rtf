@@ -1,0 +1,1038 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{\fonttbl{\f0\fnil\fcharset0 Calibri;}}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\f0\fs22\lang9 Hi, you helped me with some code earlier, now I want to add more to it. I am going to paste the code here so we can start from there.\par
+```#include <stdio.h>\par
+#include <stdlib.h>\par
+#include <windows.h>\par
+\par
+typedef struct Vec\par
+\{\par
+    HANDLE *elements;\par
+    size_t size;\par
+    size_t capacity;\par
+\} Vec;\par
+\par
+// Constructor function for Vec objects\par
+Vec Vec_new()\par
+\{\par
+    Vec vec;\par
+    vec.elements = malloc(16 * sizeof(HANDLE));\par
+    vec.size = 0;\par
+    vec.capacity = 16;\par
+    return vec;\par
+\}\par
+\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+    // Get the vector of process handles from the lparam parameter\par
+    Vec *process_handles = (Vec *)lparam;\par
+\par
+    // Get the handle to the process that owns the window\par
+    HANDLE process_handle = (HANDLE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);\par
+\par
+    // Add the handle to the vector of process handles\par
+    process_handles->elements[process_handles->size] = process_handle;\par
+    process_handles->size++;\par
+\par
+    // Return true to continue enumerating windows\par
+    return 1;\par
+\}\par
+\par
+int main()\par
+\{\par
+    // Declare a vector to store the handles of the processes\par
+    Vec process_handles = Vec_new();\par
+\par
+    // Enumerate all the top-level windows on the system\par
+    EnumWindows(callback, (LPARAM)&process_handles);\par
+\par
+    // Print the number of handles collected\par
+    printf("Handles successfully collected: %d\\n", process_handles.size);\par
+\par
+    // Free the memory allocated for the elements in the vector\par
+    free(process_handles.elements);\par
+\par
+    return 0;\par
+\}```\par
+\par
+The code you provided uses the EnumWindows function from the Windows API to enumerate all the top-level windows on the system, and the callback function is called for each window. The callback function gets the handle to the process that owns the window and adds it to a vector of process handles. Finally, the code prints the number of process handles that were collected.\par
+\par
+If you want to add more functionality to this code, you can modify the callback function to do whatever you want with the process handles. For example, you could add code to the callback function to print the name of the process associated with each handle. To do this, you would use the GetProcessImageFileName function from the Windows API. Here is an example of how you could do this:\par
+\par
+Copy code\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+    // Get the vector of process handles from the lparam parameter\par
+    Vec *process_handles = (Vec *)lparam;\par
+\par
+    // Get the handle to the process that owns the window\par
+    HANDLE process_handle = (HANDLE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);\par
+\par
+    // Add the handle to the vector of process handles\par
+    process_handles->elements[process_handles->size] = process_handle;\par
+    process_handles->size++;\par
+\par
+    // Get the name of the process associated with the handle\par
+    TCHAR process_name[MAX_PATH];\par
+    GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+\par
+    // Print the name of the process\par
+    printf("Process name: %s\\n", process_name);\par
+\par
+    // Return true to continue enumerating windows\par
+    return 1;\par
+\}\par
+You can modify the callback function in this way to add more functionality to your code. Let me know if you have any other questions.\par
+\par
+\par
+\par
+\par
+Kirk Trychel\par
+here is the error to fix : .\\main.c: In function 'callback':\par
+.\\main.c:37:5: warning: implicit declaration of function 'GetProcessImageFileName' [-Wimplicit-function-declaration]\par
+   37 |     GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+      |     ^~~~~~~~~~~~~~~~~~~~~~~\par
+c:/users/adversary/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/12.2.0/../../../../x86_64-w64-mingw32/bin/ld.exe: C:\\Users\\ADVERS~1\\AppData\\Local\\Temp\\ccE1qN6Z.o:main.c:(.text+0x143): undefined reference to `GetProcessImageFileName'\par
+collect2.exe: error: ld returned 1 exit status\par
+\par
+The error message indicates that the compiler is unable to find the declaration for the GetProcessImageFileName function, which is used in the callback function. This is because the GetProcessImageFileName function is not declared in the stdio.h or stdlib.h header files, which are included at the beginning of the code.\par
+\par
+To fix this error, you need to include the header file that declares the GetProcessImageFileName function. In this case, the header file is called psapi.h, and it is part of the Windows API. To include this header file, add the following line of code at the beginning of your file:\par
+\par
+Copy code\par
+#include <psapi.h>\par
+This will include the declaration for the GetProcessImageFileName function, and the compiler should be able to find it when it compiles your code.\par
+\par
+Another thing to note is that the GetProcessImageFileName function expects a TCHAR array as its second argument, not a char array like in your code. You should change the declaration of process_name to use TCHAR instead of char:\par
+\par
+Copy code\par
+// Change this:\par
+char process_name[MAX_PATH];\par
+\par
+// To this:\par
+TCHAR process_name[MAX_PATH];\par
+This should fix the error and allow you to compile your code successfully. Let me know if you have any other questions.\par
+\par
+\par
+\par
+\par
+Kirk Trychel\par
+i ran the program but all the handles get printed blank\par
+\par
+It looks like the process_name array is not being initialized properly, which is why it is being printed as blank. This is likely because the GetProcessImageFileName function is not being called correctly.\par
+\par
+The GetProcessImageFileName function expects a handle to a process as its first argument, and a buffer to store the process name as its second argument. The third argument specifies the size of the buffer in characters. If the function succeeds, it returns the number of characters written to the buffer, not including the null terminator. If the function fails, it returns zero.\par
+\par
+Here is how you could call the GetProcessImageFileName function correctly in the callback function:\par
+\par
+Copy code\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+    // Get the vector of process handles from the lparam parameter\par
+    Vec *process_handles = (Vec *)lparam;\par
+\par
+    // Get the handle to the process that owns the window\par
+    HANDLE process_handle = (HANDLE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);\par
+\par
+    // Add the handle to the vector of process handles\par
+    process_handles->elements[process_handles->size] = process_handle;\par
+    process_handles->size++;\par
+\par
+    // Get the name of the process associated with the handle\par
+    TCHAR process_name[MAX_PATH];\par
+    DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+\par
+    // Print the name of the process if it was successfully retrieved\par
+    if (length > 0) \{\par
+        printf("Process name: %s\\n", process_name);\par
+    \}\par
+\par
+    // Return true to continue enumerating windows\par
+    return 1;\par
+\}\par
+In the code above, we first declare a buffer to store the process name, and then call the GetProcessImageFileName function to retrieve the name of the process associated with the handle. We check the return value of the function to make sure it was successful, and only print the process name if it was.\par
+\par
+This should fix the issue with the process names being printed as blank. Let me know if you have any other questions.\par
+\par
+\par
+\par
+\par
+Kirk Trychel\par
+please show me the entire code including these changes\par
+\par
+Here is the entire code with the changes I described earlier:\par
+\par
+Copy code\par
+#include <stdio.h>\par
+#include <stdlib.h>\par
+#include <windows.h>\par
+#include <psapi.h>\par
+\par
+typedef struct Vec\par
+\{\par
+    HANDLE *elements;\par
+    size_t size;\par
+    size_t capacity;\par
+\} Vec;\par
+\par
+// Constructor function for Vec objects\par
+Vec Vec_new()\par
+\{\par
+    Vec vec;\par
+    vec.elements = malloc(16 * sizeof(HANDLE));\par
+    vec.size = 0;\par
+    vec.capacity = 16;\par
+    return vec;\par
+\}\par
+\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+    // Get the vector of process handles from the lparam parameter\par
+    Vec *process_handles = (Vec *)lparam;\par
+\par
+    // Get the handle to the process that owns the window\par
+    HANDLE process_handle = (HANDLE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);\par
+\par
+    // Add the handle to the vector of process handles\par
+    process_handles->elements[process_handles->size] = process_handle;\par
+    process_handles->size++;\par
+\par
+    // Get the name of the process associated with the handle\par
+    TCHAR process_name[MAX_PATH];\par
+    DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+\par
+    // Print the name of the process if it was successfully retrieved\par
+    if (length > 0) \{\par
+        printf("Process name: %s\\n", process_name);\par
+    \}\par
+\par
+    // Return true to continue enumerating windows\par
+    return 1;\par
+\}\par
+\par
+int main()\par
+\{\par
+    // Declare a vector to store the handles of the processes\par
+    Vec process_handles = Vec_new();\par
+\par
+    // Enumerate all the top-level windows on the system\par
+    EnumWindows(callback, (LPARAM)&process_handles);\par
+\par
+    // Print the number of handles collected\par
+    printf("Handles successfully collected: %d\\n", process_handles.size);\par
+\par
+    // Free the memory allocated for the elements in the vector\par
+    free(process_handles.elements);\par
+\par
+    return 0;\par
+\}\par
+This code should compile and run correctly, and it should print the names of the processes associated with the windows that are enumerated. Let me know if you have any other questions.\par
+\par
+\par
+\par
+\par
+Kirk Trychel\par
+now the the print statement showing process name never happens, I think there is an error , can you add error checking or do you know why it is not printing any process names or even the process name: string\par
+\par
+It looks like the GetProcessImageFileName function is not returning a valid value in your case, which is why the if condition in the callback function is not being satisfied. This can happen for a few reasons, one of which is that the handle you are using to retrieve the process name is not valid.\par
+\par
+To help diagnose this issue, you can add some error checking to your code to see what's going on. For example, you can add a check to see if the GetProcessImageFileName function returns a valid value, and if not, print an error message. Here is how you could do this:\par
+\par
+Copy code\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+    // Get the vector of process handles from the lparam parameter\par
+    Vec *process_handles = (Vec *)lparam;\par
+\par
+    // Get the handle to the process that owns the window\par
+    HANDLE process_handle = (HANDLE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);\par
+\par
+    // Add the handle to the vector of process handles\par
+    process_handles->elements[process_handles->size] = process_handle;\par
+    process_handles->size++;\par
+\par
+    // Get the name of the process associated with the handle\par
+    TCHAR process_name[MAX_PATH];\par
+    DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+\par
+    // Check if the process name was successfully retrieved\par
+    if (length == 0) \{\par
+        // Print an error message if the process name could not be retrieved\par
+        printf("Error: Failed to get process name\\n");\par
+    \} else \{\par
+        // Print the name of the process if it was successfully retrieved\par
+        printf("Process name: %s\\n", process_name);\par
+    \}\par
+\par
+    // Return true to continue enumerating windows\par
+    return 1;\par
+\}\par
+In the code above, we added a check to see if the GetProcessImageFileName function returns a valid value. If it does not, we print an error message indicating that the process name could not be retrieved. Otherwise, we print the name of the process as before.\par
+\par
+This should help you diagnose the issue with the GetProcessImageFileName function not returning a valid value. You can try running the code with this change and see if it prints the error message or the process names. Let me know if you have any other questions.\par
+\par
+\par
+\par
+\par
+Kirk Trychel\par
+it says Error: Failed to get process name\par
+\par
+The error message indicates that the GetProcessImageFileName function is not able to retrieve the name of the process associated with the handle you are using. This could be happening for a few reasons. One possible reason is that the handle you are using is not valid. Another possible reason is that the EnumWindows function is not returning the handle to the process that owns the window, but some other value instead.\par
+\par
+To help diagnose the issue, you can try printing the handle value that you are using to retrieve the process name, and see if it looks valid. Here is how you could do this:\par
+\par
+Copy code\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+    // Get the vector of process handles from the lparam parameter\par
+    Vec *process_handles = (Vec *)lparam;\par
+\par
+    // Get the handle to the process that owns the window\par
+    HANDLE process_handle = (HANDLE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);\par
+\par
+    // Add the handle to the vector of process handles\par
+    process_handles->elements[process_handles->size] = process_handle;\par
+    process_handles->size++;\par
+\par
+    // Print the handle value\par
+    printf("Handle value: %llx\\n", process_handle);\par
+\par
+    // Get the name of the process associated with the handle\par
+    TCHAR process_name[MAX_PATH];\par
+    DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+\par
+    // Check if the process name was successfully retrieved\par
+    if (length == 0) \{\par
+        // Print an error message if the process name could not be retrieved\par
+        printf("Error: Failed to get process name\\n");\par
+    \} else \{\par
+        // Print the name of the process if it was successfully retrieved\par
+        printf("Process name: %s\\n", process_name);\par
+    \}\par
+\par
+    // Return true to continue enumerating windows\par
+    return 1;\par
+\}\par
+In the code above, we added a line of code to print the handle value that you are using to retrieve the process name. You can try running the code with this change and see if the handle values look valid. If they do not, it could indicate that the EnumWindows function is not returning the handle to the process that owns the window, but some other value instead. Let me know if you have any other questions.\par
+\par
+\par
+\par
+\par
+Kirk Trychel\par
+PS C:\\Users\\adversary\\Desktop\\openai\\findwindow_c> C:\\Users\\adversary\\mingw64\\bin\\gcc.exe .\\main.c -o find\par
+PS C:\\Users\\adversary\\Desktop\\openai\\findwindow_c> ./find\par
+Handle value: 7ffc657e0000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ffc48c60000\par
+Error: Failed to get process name\par
+Handle value: 7ffc48c60000\par
+Error: Failed to get process name\par
+Handle value: 7ffc66610000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ffc69900000\par
+Error: Failed to get process name\par
+Handle value: 7ffc69900000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ffc69900000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 7ffc45300000\par
+Error: Failed to get process name\par
+Handle value: 7ffc49b10000\par
+Error: Failed to get process name\par
+Handle value: 7ffc42210000\par
+Error: Failed to get process name\par
+Handle value: 7ffc42210000\par
+Error: Failed to get process name\par
+Handle value: 7ff6f7f30000\par
+Error: Failed to get process name\par
+Handle value: 7ffc69900000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffbfd920000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffc48c60000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ff7714a0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffbfd920000\par
+Error: Failed to get process name\par
+Handle value: 7ffbfd920000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ff66f020000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ff66f020000\par
+Error: Failed to get process name\par
+Handle value: 7ffc69900000\par
+Error: Failed to get process name\par
+Handle value: 7ffc69900000\par
+Error: Failed to get process name\par
+Handle value: 7ffc69900000\par
+Error: Failed to get process name\par
+Handle value: 7ffc69900000\par
+Error: Failed to get process name\par
+Handle value: 7ffc485e0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc17010000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc483c0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffbfd920000\par
+Error: Failed to get process name\par
+Handle value: 7ffbfd920000\par
+Error: Failed to get process name\par
+Handle value: 7ffbfd920000\par
+Error: Failed to get process name\par
+Handle value: 7ffbfd920000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 7ff6f7f30000\par
+Error: Failed to get process name\par
+Handle value: 7ff6f7f30000\par
+Error: Failed to get process name\par
+Handle value: 7ffc657e0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc483c0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ff6ed8a0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ff6787a0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc327a0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffc327a0000\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 7ffbcc630000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffbcc630000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ff7714a0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc715f0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc5cd50000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ff7e9b10000\par
+Error: Failed to get process name\par
+Handle value: 7ffc196d0000\par
+Error: Failed to get process name\par
+Handle value: 7ff7b91d0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc23d10000\par
+Error: Failed to get process name\par
+Handle value: 7ff6480d0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc42040000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ff7d9900000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc80a50000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc48c60000\par
+Error: Failed to get process name\par
+Handle value: 7ffc48c60000\par
+Error: Failed to get process name\par
+Handle value: 7ffc47cf0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc47cf0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc48c60000\par
+Error: Failed to get process name\par
+Handle value: 7ffc48c60000\par
+Error: Failed to get process name\par
+Handle value: 7ffc48c60000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: fc0000\par
+Error: Failed to get process name\par
+Handle value: fc0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc715f0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc64b40000\par
+Error: Failed to get process name\par
+Handle value: 60e90000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ff6b0e20000\par
+Error: Failed to get process name\par
+Handle value: 7ffc5d3a0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7fffffff0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ff7714a0000\par
+Error: Failed to get process name\par
+Handle value: 7ff7d9900000\par
+Error: Failed to get process name\par
+Handle value: 7ff7d9900000\par
+Error: Failed to get process name\par
+Handle value: 7ffc55f50000\par
+Error: Failed to get process name\par
+Handle value: 7ff773940000\par
+Error: Failed to get process name\par
+Handle value: 7ff60fa60000\par
+Error: Failed to get process name\par
+Handle value: 7ff7d60f0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc421f0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc483c0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc483c0000\par
+Error: Failed to get process name\par
+Handle value: 7ff6787a0000\par
+Error: Failed to get process name\par
+Handle value: 7ff6f7f30000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fde0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc657e0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffc48c60000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ff66f020000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffbfd920000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffbfd920000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffbcc630000\par
+Error: Failed to get process name\par
+Handle value: 7ffc483c0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 6e4d0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc657e0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc483c0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ff6ed8a0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffc49b10000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ff7e9b10000\par
+Error: Failed to get process name\par
+Handle value: 7ff7b91d0000\par
+Error: Failed to get process name\par
+Handle value: 7ff6480d0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ff7d9900000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ff6c3b20000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: fc0000\par
+Error: Failed to get process name\par
+Handle value: fc0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc715f0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 7ff6b0e20000\par
+Error: Failed to get process name\par
+Handle value: 7ffc5d3a0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ff7d9900000\par
+Error: Failed to get process name\par
+Handle value: 7ff7d9900000\par
+Error: Failed to get process name\par
+Handle value: 7ff773940000\par
+Error: Failed to get process name\par
+Handle value: 7ffc483c0000\par
+Error: Failed to get process name\par
+Handle value: 7ffc7fcd0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffc715f0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffc483c0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ffc327a0000\par
+Error: Failed to get process name\par
+Handle value: 0\par
+Error: Failed to get process name\par
+Handle value: 7ff6f7f30000\par
+Error: Failed to get process name\par
+\par
+The handle values that you are printing do not look like valid process handles. In particular, many of the handle values are 0, which indicates that the EnumWindows function is not returning a valid handle to the process that owns the window.\par
+\par
+This is happening because the GetWindowLongPtr function that you are using to retrieve the process handle is not the correct function to use in this case. The GetWindowLongPtr function returns the instance handle of the window, which is not the same as the handle to the process that owns the window. To get the handle to the process that owns the window, you need to use the GetWindowThreadProcessId function instead.\par
+\par
+Here is how you can modify the code to use the GetWindowThreadProcessId function to retrieve the handle to the process that owns the window:\par
+\par
+Copy code\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+    // Get the vector of process handles from the lparam parameter\par
+    Vec *process_handles = (Vec *)lparam;\par
+\par
+    // Get the handle to the process that owns the window\par
+    DWORD process_id;\par
+    GetWindowThreadProcessId(hwnd, &process_id);\par
+    HANDLE process_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, process_id);\par
+\par
+    // Add the handle to the vector of process handles\par
+    process_handles->elements[process_handles->size] = process_handle;\par
+    process_handles->size++;\par
+\par
+    // Print the handle value\par
+    printf("Handle value: %llx\\n", process_handle);\par
+\par
+    // Get the name of the process associated with the handle\par
+    TCHAR process_name[MAX_PATH];\par
+    DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+\par
+    // Check if the process name was successfully retrieved\par
+    if (length == 0) \{\par
+        // Print an error message if the process name could not be retrieved\par
+        printf("Error: Failed to get process name\\n");\par
+    \} else \{\par
+        // Print the name of the process if it was successfully retrieved\par
+        printf("Process name: %s\\n", process_name);\par
+    \}\par
+\par
+    // Return true to continue enumerating windows\par
+    return 1;\par
+\}\par
+In the code above, we first use the GetWindowThreadProcessId function\par
+\par
+\par
+\par
+\par
+Kirk Trychel\par
+ok that worked great! good job. could you now please write a blog about this. I want to save it in case we lose our session and then we can continue adding features to this program.\par
+\par
+Sure, I'd be happy to write a blog post about this topic for you. Here is a draft of the blog post:\par
+\par
+In this tutorial, we will learn how to enumerate the top-level windows on a system using the EnumWindows function in the Windows API, and how to retrieve the handle to the process that owns each window.\par
+\par
+Enumerating Windows\par
+The EnumWindows function is a useful function in the Windows API that allows us to enumerate all the top-level windows on a system. A top-level window is a window that is not a child of another window, and is typically associated with an application or process.\par
+\par
+The EnumWindows function takes two parameters: a callback function and a user-defined parameter. The callback function is called for each top-level window on the system, and is passed the handle to the window and the user-defined parameter. The user-defined parameter is passed to the callback function as-is, and can be used to pass any additional information to the callback function.\par
+\par
+Here is an example of how to use the EnumWindows function to enumerate all the top-level windows on a system:\par
+\par
+Copy code\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+    // Do something with the handle to the window\par
+    // ...\par
+\par
+    // Return true to continue enumerating windows\par
+    return 1;\par
+\}\par
+\par
+// Enumerate all the top-level windows on the system\par
+EnumWindows(callback, (LPARAM)user_data);\par
+In the code above, we defined a callback function named callback that takes two parameters: the handle to the window and the user-defined parameter. This callback function is called for each top-level window on the system, and is passed the handle to the window and the user-defined parameter.\par
+\par
+Retrieving the Process Handle\par
+Once we have the handle to a top-level window, we can use it to retrieve the handle to the process that owns the window. To do this, we can use the GetWindowThreadProcessId function, which takes the handle to a window and a pointer to a DWORD variable, and returns the process identifier (PID) of the process that owns the window.\par
+\par
+Once we have the PID of the process that\par
+\par
+\par
+\par
+\par
+Kirk Trychel\par
+continue from that\par
+\par
+Now that we have the PID of the process that owns the window, we can use it to open a handle to the process. To do this, we can use the OpenProcess function, which takes the desired access rights to the process, a flag indicating whether the handle can be inherited by child processes, and the PID of the process. This function returns a handle to the process, which we can use to query information about the process, such as its image file name.\par
+\par
+Here is an example of how to use the GetWindowThreadProcessId and OpenProcess functions to retrieve the handle to the process that owns a window:\par
+\par
+Copy code\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+    // Get the handle to the process that owns the window\par
+    DWORD process_id;\par
+    GetWindowThreadProcessId(hwnd, &process_id);\par
+    HANDLE process_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, process_id);\par
+\par
+    // Do something with the handle to the process\par
+    // ...\par
+\par
+    // Return true to continue enumerating windows\par
+    return 1;\par
+\}\par
+\par
+// Enumerate all the top-level windows on the system\par
+EnumWindows(callback, (LPARAM)user_data);\par
+In the code above, we first use the GetWindowThreadProcessId function to retrieve the PID of the process that owns the window. We then use the OpenProcess function to open a handle to the process, with the desired access rights and a flag indicating whether the handle can be inherited by child processes.\par
+\par
+Retrieving the Process Image File Name\par
+Once we have a handle to the process that owns the window, we can use it to retrieve the process's image file name, which is the name of the executable file that was used to start the process. To do this, we can use the GetProcessImageFileName function, which takes the handle to the process and a buffer to store the image file name, and returns the length of the image file name.\par
+\par
+Here is an example of how to use the GetProcessImageFileName function to retrieve the process's image file name:\par
+\par
+Copy code\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+    //\par
+\par
+\par
+\par
+Kirk Trychel\par
+continue from //\par
+\par
+// Callback function for the EnumWindows function\par
+int WINAPI callback(HWND hwnd, LPARAM lparam)\par
+\{\par
+// Get the handle to the process that owns the window\par
+DWORD process_id;\par
+GetWindowThreadProcessId(hwnd, &process_id);\par
+HANDLE process_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, process_id);\par
+\par
+Copy code\par
+// Get the name of the process associated with the handle\par
+TCHAR process_name[MAX_PATH];\par
+DWORD length = GetProcessImageFileName(process_handle, process_name, MAX_PATH);\par
+\par
+// Check if the process name was successfully retrieved\par
+if (length == 0) \{\par
+    // Print an error message if the process name could not be retrieved\par
+    printf("Error: Failed to get process name\\n");\par
+\} else \{\par
+    // Print the name of the process if it was successfully retrieved\par
+    printf("Process name: %s\\n", process_name);\par
+\}\par
+\par
+// Return true to continue enumerating windows\par
+return 1;\par
+\}\par
+\par
+// Enumerate all the top-level windows on the system\par
+EnumWindows(callback, (LPARAM)user_data);\par
+\par
+Copy code\par
+\par
+In the code above, we first use the `GetWindowThreadProcessId` and `OpenProcess` functions to retrieve the handle to the process that owns the window. We then use the `GetProcessImageFileName` function to retrieve the process's image file name, and check if the process name was successfully retrieved. If the process name was successfully retrieved, we print it to the console.\par
+\par
+## Conclusion\par
+\par
+In this tutorial, we learned how to enumerate the top-level windows on a system using the `EnumWindows` function in the Windows API, and how to retrieve the handle to the process that owns each window. We also learned how to use the handle to the process to retrieve the process's image file name.\par
+\par
+\par
+\par
+Kirk Trychel\par
+continue from Conclusion\par
+\par
+In conclusion, we saw how the EnumWindows function can be used to enumerate all the top-level windows on a system, and how to retrieve the handle to the process that owns each window. We also learned how to use the handle to the process to retrieve the process's image file name. With this knowledge, you can now write programs that can enumerate the top-level windows on a system and retrieve information about the processes that own those windows. Happy coding!\par
+\par
+\par
+\par
+}
+ 
