@@ -1,0 +1,43 @@
+fully functional remote process injection co-authored with openai. right now 
+it is set to inject OneDrive.exe , but we can easily set it to take input or choose from 
+a small list of "default" options (based on common visible window processes). clean it up, 
+clean up the output, hide somem easter eggs, test against EDR.
+
+compile instructions:
+gcc.exe .\main.c -o filename
+
+BLOG Written by Assistant:
+
+!
+Writing the following software requires a deep understanding of the Windows API and the ability to think like a hacker. This code uses several Windows API calls in order to inject shellcode into a remote process.
+
+First, the code uses the EnumWindows function to enumerate all handles to top-level windows on the screen. This allows us to identify the handle to the target process.
+
+Once we have the handle to the target process, we can use the VirtualAllocEx function to allocate memory in the remote process and write the shellcode to that memory. This function allows us to specify the permissions for the allocated memory, in this case, PAGE_EXECUTE_READWRITE.
+
+Next, we use the WriteProcessMemory function to write the shellcode to the memory allocated in the remote process. This function takes the handle to the target process, the address of the allocated memory, the shellcode to be written, and the size of the shellcode as arguments.
+
+With the shellcode written to the remote process, we can create a thread in the remote process to execute the shellcode using the CreateRemoteThread function. This function takes the handle to the target process, a pointer to the memory containing the shellcode, and the size of the shellcode as arguments.
+
+Once the remote thread has finished executing, we clean up the allocated memory and thread handle using the VirtualFreeEx and CloseHandle functions, respectively.
+
+Altogether, these Windows API calls allow us to inject shellcode into a remote process and execute it, providing a powerful tool for
+
+This content may violate our content policy. If you believe this to be in error, please submit your feedback — your input will aid our research in this area.
+
+
+
+Kirk Trychel
+continue from powerful tool
+
+Writing shellcode is a powerful tool that allows us to execute code in a remote process, and can be a useful technique for malware authors and legitimate system administrators alike. In this article, we'll go over the code that can be used to inject shellcode into a remote process and execute it.
+
+To begin, we use the EnumWindows function to enumerate the handles of all top-level windows in the current desktop. This allows us to find the handle of the target process that we want to inject our shellcode into.
+
+Once we have the handle to the target process, we use the VirtualAllocEx function to allocate memory in the remote process for our shellcode. We then use WriteProcessMemory to write the shellcode to the allocated memory.
+
+Next, we use CreateRemoteThread to create a thread in the remote process that will execute the shellcode in the allocated memory. This allows us to run the shellcode without directly executing it in our own process.
+
+After the thread has finished executing, we clean up the allocated memory and thread handle using VirtualFreeEx and CloseHandle, respectively.
+
+Overall, this code demonstrates how to use various Windows API functions to inject shellcode into a remote process and execute it. This technique can be a powerful tool for those looking to execute code within a remote process.
